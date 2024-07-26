@@ -3,6 +3,7 @@ import ephem
 import requests
 from datetime import datetime
 import pytz
+from geopy.geocoders import Nominatim
 
 # Constants
 circle_radius = 1
@@ -26,22 +27,33 @@ def get_zodiac_sign(ra):
 
 def get_coordinates(city_name):
     """Get latitude and longitude for a given city."""
-    url = f"https://nominatim.openstreetmap.org/search?q={city_name}&format=json"
-    headers = {'User-Agent': 'Mozilla/5.0'}
-    response = requests.get(url, headers=headers)
-    if response.status_code == 200:
-        data = response.json()
-        if data:
-            return float(data[0]['lat']), float(data[0]['lon'])
-        else:
-            raise ValueError("City not found")
+    geolocator = Nominatim(user_agent="geoapiExercises")
+    location = geolocator.geocode(city_name)
+    if location:
+        return location.latitude, location.longitude
     else:
-        raise ValueError("Error in geocoding request")
+        raise ValueError("City not found")
 
 def angular_distance(angle1, angle2):
     """Calculate the angular distance between two angles in radians."""
     diff = abs(angle1 - angle2)
     return min(diff, 2 * math.pi - diff)
+
+def get_aspect(angle1, angle2):
+    """Determine the aspect between two planetary positions."""
+    distance = angular_distance(angle1, angle2)
+    if abs(distance) < math.radians(8):  # Conjunction
+        return 'Conjunction'
+    elif abs(distance - math.pi) < math.radians(8):  # Opposition
+        return 'Opposition'
+    elif abs(distance - math.radians(60)) < math.radians(8):  # Trine
+        return 'Trine'
+    elif abs(distance - math.radians(90)) < math.radians(8):  # Square
+        return 'Square'
+    elif abs(distance - math.radians(120)) < math.radians(8):  # Sextile
+        return 'Sextile'
+    else:
+        return 'No significant aspect'
 
 def calculate_cardinal_points():
     """Calculate the cardinal points (equinoxes and solstices) for the current year."""
@@ -117,6 +129,7 @@ def get_astrological_data(city_name):
     # Setup observer
     observer = ephem.Observer()
     observer.lat, observer.lon = str(lat), str(lon)
+    observer.date = datetime.utcnow()
     
     # Convert UTC now to local time
     local_tz = pytz.timezone("Europe/Bucharest")  # Timisoara timezone
@@ -152,6 +165,7 @@ def get_astrological_data(city_name):
             'RA': planet.ra,  # Right Ascension
             'Dec': planet.dec,  # Declination
             'Zodiac Sign': get_zodiac_sign(planet.ra),  # Zodiac sign
+            'Constellation': ephem.constellation(planet)  # Zodiac constellation
         }
         # Add additional data
         if planet_name != 'Lilith':
@@ -169,34 +183,36 @@ def get_astrological_data(city_name):
             print(f"  {key}: {value}")
         print()
     
+    # Example of zodiac relations and aspects
+    print("Example Zodiac Relations and Aspects:")
+    planet_names = list(astro_data.keys())
+    for i in range(len(planet_names)):
+        for j in range(i + 1, len(planet_names)):
+            p1 = planet_names[i]
+            p2 = planet_names[j]
+            ra1, ra2 = astro_data[p1]['RA'], astro_data[p2]['RA']
+            aspect = get_aspect(ra1, ra2)
+            print(f"Aspects between {p1} and {p2}: {aspect}")
+    
     # Special Correspondences for Elements
     element_correspondences = {
         'Fire': ['Sun', 'Mars', 'Jupiter'],
         'Earth': ['Venus', 'Saturn', 'Pluto'],
         'Air': ['Mercury', 'Uranus', 'Neptune'],
-        'Ether': ['Moon', 'Lilith']
+        'Water': ['Moon', 'Mars', 'Neptune']
     }
     
-    # Print element correspondences
-    print("Element Correspondences:")
-    for element, associated_planets in element_correspondences.items():
-        print(f"{element}: {', '.join(associated_planets)}")
-    
-    # Trace planetary circles
-    print("\nTracing planetary circles relative to elements:")
-    for element, associated_planets in element_correspondences.items():
-        print(f"\n{element} Element Planets:")
-        for planet_name in associated_planets:
-            if planet_name in astro_data:
-                planet_data = astro_data[planet_name]
-                print(f"{planet_name}:")
-                print(f"  Zodiac Sign: {planet_data['Zodiac Sign']}")
-                print(f"  Right Ascension (RA): {planet_data['RA']}")
-                print(f"  Declination (Dec): {planet_data['Dec']}")
-                print(f"  Distance to Helios: {planet_data.get('Distance to Helios', 'N/A')}")
-                print(f"  Current Frequency (Hz): {planet_data.get('Current Frequency (Hz)', 'N/A')}")
-                print(f"  Resonance: {planet_data.get('Resonance', 'N/A')}")
+    print("\nElement Correspondences:")
+    for element, planets in element_correspondences.items():
+        print(f"{element}:")
+        for planet in planets:
+            if planet in astro_data:
+                print(f"  {planet}:")
+                for key, value in astro_data[planet].items():
+                    print(f"    {key}: {value}")
                 print()
 
 # Example usage
-get_astrological_data('Timisoara')
+if __name__ == "__main__":
+    city = "Timisoara, Timis, Romania"
+    get_astrological_data(city)
