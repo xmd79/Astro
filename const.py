@@ -86,28 +86,86 @@ def get_real_time_stars(observer):
         'Gamma Draconis (Draco)': {'coords': ('17:10:57.97', '+51:24:19.47')},
         
         # Sirius
-        'Sirius (Canis Major)': {'coords': ('06:45:08.917', '-16:42:58.017')},  # Sirius coordinates
+        'Sirius (Canis Major)': {'coords': ('06:45:08.917', '-16:42:58.017')},
         
         # Additional constellations
         # Centaurus
         'Alpha Centauri (Centaurus)': {'coords': ('14:39:36.49', '-60:50:02.36')},
         'Betacca (Centaurus)': {'coords': ('14:36:00.53', '-60:39:55.68')},
-        
+
         # Aquila
         'Altair (Aquila)': {'coords': ('19:50:47.49', '+08:52:06.35')},
-        
+
         # Canis Minor
         'Procyon (Canis Minor)': {'coords': ('07:39:18.12', '+05:13:29.92')},
-        
-        # Cassiopeia
-        'Ruchbah (Cassiopeia)': {'coords': ('01:56:26.91', '+60:28:46.73')},
-        
+
         # Pegasus
         'Markab (Pegasus)': {'coords': ('23:12:43.39', '+15:57:00.70')},
         'Scheat (Pegasus)': {'coords': ('23:03:10.46', '+28:06:58.80')},
+
+        # Fornax
+        'For effect (Fornax)': {'coords': ('03:22:08.41', '-36:46:48.6')},
         
-        # Lyra
-        'Lyra (Lyra)': {'coords': ('18:36:56.33', '+38:02:00.22')}
+        # Crux
+        'Acrux (Crux)': {'coords': ('12:26:15.18', '-63:11:31.24')},
+        'Mimosa (Crux)': {'coords': ('12:22:52.39', '-59:41:39.96')},
+
+        # Eridanus
+        'Achernar (Eridanus)': {'coords': ('01:37:43.27', '-57:14:12.65')},
+
+        # Ophiuchus
+        'Rasalhague (Ophiuchus)': {'coords': ('17:34:45.2', '+12:37:16.0')},
+
+        # Serpens
+        'Unukalhai (Serpens)': {'coords': ('15:52:16.60', '+14:31:46.40')},
+
+        # Camelopardalis
+        'Beta Camelopardalis (Camelopardalis)': {'coords': ('05:29:33.90', '+81:04:15.80')},
+
+        # Lynx
+        'Alpha Lynx (Lynx)': {'coords': ('08:43:18.90', '+55:10:14.60')},
+
+        # Sculptor
+        'Alpha Sculptoris (Sculptor)': {'coords': ('22:36:24.10', '-30:8:36.7')},
+
+        # Phoenix
+        'Alpha Phoenicis (Phoenix)': {'coords': ('01:36:41.67', '-49:18:13.6')},
+        
+        # Hydrus
+        'Alpha Hydri (Hydrus)': {'coords': ('00:54:31.28', '-77:00:58.5')},
+
+        # Pictor
+        'Alpha Pictoris (Pictor)': {'coords': ('05:15:16.47', '-54:36:07.9')},
+
+        # Tucana
+        'Alpha Tucanae (Tucana)': {'coords': ('23:41:27.93', '-65:59:31.9')},
+
+        # Columba
+        'Alpha Columbae (Columba)': {'coords': ('05:23:10.93', '-35:56:20.0')},
+
+        # Canis Major
+        'Mirzam (Canis Major)': {'coords': ('06:21:38.00', '-24:25:16.9')},
+        
+        # Lynx
+        'Alderamin (Lynx)': {'coords': ('17:24:01.43', '+55:24:34.3')},
+
+        # Perseus
+        'Kemble\'s Cascade (Perseus)': {'coords': ('03:00:00.00', '+60:00:00.0')},
+
+        # Aquila
+        'Beta Aquilae (Aquila)': {'coords': ('19:35:33.03', '+06:16:38.3')},
+
+        # Sagittarius
+        'Theta2 Sagittarii (Sagittarius)': {'coords': ('18:30:08.58', '-20:52:44.8')},
+        
+        # Cetus
+        'Diphda (Cetus)': {'coords': ('01:23:24.89', '-17:18:17.32')},
+
+        # Andromeda
+        'Mirach (Andromeda)': {'coords': ('00:35:27.895', '+35:37:19.10')},
+
+        # Aries
+        'T Mesr (Aries)': {'coords': ('04:28:18.43', '+27:51:32.4')}
     }
 
     stars_info = {}
