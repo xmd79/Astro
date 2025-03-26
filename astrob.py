@@ -10,15 +10,6 @@ from matplotlib.patches import Wedge
 import pytz
 from timezonefinder import TimezoneFinder
 
-# Optional dependency for dynamic Quranic verses (install with `pip install quran`)
-# If the `quran` package is not installed or fails, the code will use a fallback verse.
-try:
-    from quran import Quran
-    QURAN_AVAILABLE = True
-except ImportError:
-    QURAN_AVAILABLE = False
-    print("Warning: 'quran' package not found. Using fallback Quranic verse. To enable dynamic verses, install with `pip install quran`.")
-
 # Zodiac sign data with elemental associations and qualities
 zodiac_signs = [
     ("Aries", 0, "Fire", "Cardinal", "+"), ("Taurus", 30, "Earth", "Fixed", "-"), ("Gemini", 60, "Air", "Mutable", "+"),
@@ -774,34 +765,6 @@ def calculate_fear_greed_index(positions, cycles, aspects):
     return (lilith_fgi, description, lilith_aspects, range_desc, transition_desc, current_status, 
             quadrant_info, planet_fgis, overall_fgi, overall_desc, sidereal_fgi, sidereal_desc, quadrature)
 
-# Sacred text integration
-def get_quran_verse_of_day(local_time):
-    if QURAN_AVAILABLE:
-        try:
-            qur = Quran()
-            verse = qur.get_verses(chapter_id=1, verse_number=1)  # Use Surah Al-Fatiha 1:1
-            if verse and 'text' in verse and 'chapter' in verse and 'verse' in verse:
-                return f"Quranic Verse of the Day ({local_time.strftime('%B %d, %Y')}): {verse['text']} (Surah {verse['chapter']}, Verse {verse['verse']})"
-            else:
-                return f"Quranic Verse of the Day ({local_time.strftime('%B %d, %Y')}): 'In the name of Allah, the Most Gracious, the Most Merciful.' (Surah Al-Fatiha, Verse 1)"
-        except Exception as e:
-            print(f"Error fetching Quranic verse: {e}")
-            return f"Quranic Verse of the Day ({local_time.strftime('%B %d, %Y')}): 'In the name of Allah, the Most Gracious, the Most Merciful.' (Surah Al-Fatiha, Verse 1)"
-    else:
-        return f"Quranic Verse of the Day ({local_time.strftime('%B %d, %Y')}): 'In the name of Allah, the Most Gracious, the Most Merciful.' (Surah Al-Fatiha, Verse 1)"
-
-def get_bible_verse_of_day(local_time):
-    day_of_year = local_time.timetuple().tm_yday
-    verse_map = {53: 'Psalm 18:30'}  # Example mapping for Feb 22 (day 53 in 2025)
-    verse = verse_map.get(day_of_year % 365, 'Psalm 18:30')
-    return f"Bible Verse of the Day ({local_time.strftime('%B %d, %Y')}): 'As for God, his way is perfect: The LORD’s word is flawless; he shields all who take refuge in him.' ({verse}, NIV)"
-
-def get_torah_verse_of_day(local_time):
-    day_of_year = local_time.timetuple().tm_yday
-    verse_map = {53: 'Exodus 25:2'}  # Example mapping for Feb 22 (day 53 in 2025)
-    verse = verse_map.get(day_of_year % 365, 'Exodus 25:2')
-    return f"Torah Verse of the Day ({local_time.strftime('%B %d, %Y')}): 'Tell the Israelites to bring me an offering. You are to receive the offering for me from everyone whose heart prompts them to give.' ({verse}, NIV)"
-
 # Enhanced astrological wheel with planetary hours and lunar mansions
 def plot_astrological_wheel(positions, zodiac_signs, local_time, planetary_hours, current_planet):
     fig, ax = plt.subplots(figsize=(12, 12))
@@ -865,7 +828,7 @@ def plot_planetary_hours(planetary_hours, local_time):
 # Generate cosmic reflection
 def generate_cosmic_reflection(local_time, asc_sign, mc_sign, aspects, patterns, positions, cycles, analysis, 
                               fear_greed_index, description, lilith_aspects, sacred_geo, overall_fgi, overall_desc, 
-                              sidereal_fgi, sidereal_desc, current_planet, resonance_pairs, quran_verse, bible_verse, torah_verse):
+                              sidereal_fgi, sidereal_desc, current_planet, resonance_pairs):
     asc_element, asc_q1, asc_q2 = zodiac_elements[asc_sign]
     mc_element, mc_q1, mc_q2 = zodiac_elements[mc_sign]
     planet_hour = current_planet[0] if current_planet else "Unknown"
@@ -879,7 +842,6 @@ def generate_cosmic_reflection(local_time, asc_sign, mc_sign, aspects, patterns,
                   f"Sidereal Fear and Greed Index: {sidereal_fgi:.2f} ({sidereal_desc})\n"
                   f"Current Planetary Hour: {planet_hour}\n"
                   f"Harmonic Resonance: {', '.join(f'{p1}-{p2} (Strength: {strength:.2f})' for p1, p2, strength in resonance_pairs[:3])}\n"
-                  f"Sacred Texts:\n  {quran_verse}\n  {bible_verse}\n  {torah_verse}\n"
                   f"This celestial dance unveils a timeless harmony on this day.")
     return reflection
 
@@ -1006,19 +968,10 @@ def calculate_planetary_positions():
         print("\nSidereal Fear and Greed Index:")
         print(f"Index: {sidereal_fgi:.2f} ({sidereal_desc})")
 
-        # Sacred text verses
-        quran_verse = get_quran_verse_of_day(local_time)
-        bible_verse = get_bible_verse_of_day(local_time)
-        torah_verse = get_torah_verse_of_day(local_time)
-        print("\nSacred Text Verses:")
-        print(f"  {quran_verse}")
-        print(f"  {bible_verse}")
-        print(f"  {torah_verse}")
-
         reflection = generate_cosmic_reflection(local_time, positions["Ascendant"]["sign"], positions["Midheaven"]["sign"], 
                                                aspects, patterns, positions, cycles, analysis, fear_greed_index, description, 
                                                lilith_aspects, sacred_geo, overall_fgi, overall_desc, sidereal_fgi, sidereal_desc,
-                                               current_planet, resonance_pairs, quran_verse, bible_verse, torah_verse)
+                                               current_planet, resonance_pairs)
         print("\nCosmic Reflection:\n-----------------\n" + reflection)
 
         print("\nGenerating Sidereal Astrological Wheel Plot...")
