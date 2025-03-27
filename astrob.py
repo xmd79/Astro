@@ -21,7 +21,7 @@ zodiac_signs = [
 zodiac_elements = {sign[0]: (sign[2], "hot" if sign[2] in ["Fire", "Air"] else "cold", 
                             "dry" if sign[2] in ["Fire", "Earth"] else "wet") for sign in zodiac_signs}
 
-# Nakshatras and Lunar Mansions (28) with attributes
+# Nakshatras and Lunar Mansions (27) with attributes
 nakshatras = [
     ("Ashwini", 0, "Ketu", "Swift", "Healing"), ("Bharani", 13.33, "Venus", "Bearing", "Transformation"),
     ("Krittika", 26.66, "Sun", "Cutting", "Purification"), ("Rohini", 40, "Moon", "Growth", "Creativity"),
@@ -150,61 +150,56 @@ def get_zodiac_sign(longitude):
 def calculate_planetary_hours(local_time, lat, lon):
     observer = setup_observer(lat, lon, local_time.astimezone(pytz.UTC))
     
-    # Get sunrise and sunset times
-    observer.horizon = '-0:34'  # Adjust for atmospheric refraction
+    observer.horizon = '-0:34'
     sunrise = observer.next_rising(ephem.Sun()).datetime().replace(tzinfo=pytz.UTC)
     sunset = observer.next_setting(ephem.Sun()).datetime().replace(tzinfo=pytz.UTC)
     
-    # Convert to local time
     timezone = local_time.tzinfo
     sunrise = sunrise.astimezone(timezone)
     sunset = sunset.astimezone(timezone)
     
-    # Calculate day and night lengths
-    day_length = (sunset - sunrise).total_seconds() / 3600  # Hours
-    night_length = (24 - day_length)  # Hours
+    day_length = (sunset - sunrise).total_seconds() / 3600
+    night_length = 24 - day_length
     
-    # Divide into 12 planetary hours for day and night
-    day_hour_length = day_length / 12  # Hours per planetary hour (day)
-    night_hour_length = night_length / 12  # Hours per planetary hour (night)
+    day_hour_length = day_length / 12
+    night_hour_length = night_length / 12
     
-    # Determine the day of the week (0 = Monday, 6 = Sunday)
     day_of_week = local_time.weekday()
-    
-    # Planetary hour order starts with the day's ruling planet
     day_rulers = ["Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Sun"]
     start_planet = day_rulers[day_of_week]
     start_idx = PLANETARY_HOURS.index(start_planet)
     
-    # Generate planetary hours
     planetary_hours = []
     current_time = sunrise
-    for i in range(12):  # Day hours
+    for i in range(12):
         planet_idx = (start_idx + i) % 7
         planet = PLANETARY_HOURS[planet_idx]
         end_time = current_time + datetime.timedelta(hours=day_hour_length)
         planetary_hours.append((current_time, end_time, planet, "Day"))
         current_time = end_time
     
-    # Night hours
     current_time = sunset
-    for i in range(12):  # Night hours
+    for i in range(12):
         planet_idx = (start_idx + 12 + i) % 7
         planet = PLANETARY_HOURS[planet_idx]
         end_time = current_time + datetime.timedelta(hours=night_hour_length)
         planetary_hours.append((current_time, end_time, planet, "Night"))
         current_time = end_time
     
-    # Find the current planetary hour
     current_planet = None
     for start, end, planet, period in planetary_hours:
         if start <= local_time <= end:
             current_planet = (planet, period, start, end)
             break
     
+    if current_planet is None:
+        closest_hour = min(planetary_hours, key=lambda x: abs((x[0] - local_time).total_seconds()))
+        current_planet = (closest_hour[2], closest_hour[3], closest_hour[0], closest_hour[1])
+        print(f"Warning: Local time {local_time} not within calculated hours. Using closest: {closest_hour[2]} from {closest_hour[0]} to {closest_hour[1]}")
+    
     return planetary_hours, current_planet
 
-# Calculate planetary positions with lunar mansions and chakra associations
+# Calculate planetary positions with lunar mansions and chakra associations (Fixed)
 def get_planetary_positions(observer):
     planets = {
         "Sun": ephem.Sun(), "Moon": ephem.Moon(), "Mercury": ephem.Mercury(), "Venus": ephem.Venus(),
@@ -252,11 +247,9 @@ def get_planetary_positions(observer):
         modality = next(s[3] for s in zodiac_signs if s[0] == sign)
         polarity = next(s[4] for s in zodiac_signs if s[0] == sign)
         
-        # Lunar Mansion
-        nak_idx = int(sidereal_long / 12.857) % 28  # 360 / 28 = 12.857 degrees per mansion
+        nak_idx = int(sidereal_long / 13.3333) % 27  # Fixed for 27 nakshatras
         nakshatra_name, _, nak_ruler, nak_quality, nak_attribute = nakshatras[nak_idx]
 
-        # Chakra association (with default for non-planets)
         chakra_data = CHAKRA_MAP.get(name, ("None", "None", "None", "gray"))
         chakra, chakra_sanskrit, chakra_energy, chakra_color = chakra_data
 
@@ -302,7 +295,6 @@ def get_planetary_positions(observer):
                 elif sign == dignities[name]["fall"]:
                     dignity = "Fall"
                 data["dignity"] = dignity
-            # Add theosophical attributes
             if name in PLANET_ATTRIBUTES:
                 data.update({
                     "theosophical_element": PLANET_ATTRIBUTES[name]["element"],
@@ -313,7 +305,6 @@ def get_planetary_positions(observer):
                 })
         positions[name] = data
 
-    # Ensure Ascendant and Midheaven have chakra-related keys
     positions["Ascendant"] = {
         "sidereal_long": asc_sidereal,
         "tropical_long": rad_to_deg(asc_long),
@@ -322,10 +313,10 @@ def get_planetary_positions(observer):
         "element": asc_element,
         "modality": asc_modality,
         "polarity": asc_polarity,
-        "nakshatra": nakshatras[int(asc_sidereal / 12.857) % 28][0],
-        "nakshatra_ruler": nakshatras[int(asc_sidereal / 12.857) % 28][2],
-        "nakshatra_quality": nakshatras[int(asc_sidereal / 12.857) % 28][3],
-        "nakshatra_attribute": nakshatras[int(asc_sidereal / 12.857) % 28][4],
+        "nakshatra": nakshatras[int(asc_sidereal / 13.3333) % 27][0],  # Fixed for 27 nakshatras
+        "nakshatra_ruler": nakshatras[int(asc_sidereal / 13.3333) % 27][2],
+        "nakshatra_quality": nakshatras[int(asc_sidereal / 13.3333) % 27][3],
+        "nakshatra_attribute": nakshatras[int(asc_sidereal / 13.3333) % 27][4],
         "chakra": "None",
         "chakra_sanskrit": "None",
         "chakra_energy": "None",
@@ -340,10 +331,10 @@ def get_planetary_positions(observer):
         "element": zodiac_elements[get_zodiac_sign(rad_to_deg(mc_long))][0],
         "modality": next(s[3] for s in zodiac_signs if s[0] == get_zodiac_sign(rad_to_deg(mc_long))),
         "polarity": next(s[4] for s in zodiac_signs if s[0] == get_zodiac_sign(rad_to_deg(mc_long))),
-        "nakshatra": nakshatras[int(((rad_to_deg(mc_long) - ayanamsa) % 360) / 12.857) % 28][0],
-        "nakshatra_ruler": nakshatras[int(((rad_to_deg(mc_long) - ayanamsa) % 360) / 12.857) % 28][2],
-        "nakshatra_quality": nakshatras[int(((rad_to_deg(mc_long) - ayanamsa) % 360) / 12.857) % 28][3],
-        "nakshatra_attribute": nakshatras[int(((rad_to_deg(mc_long) - ayanamsa) % 360) / 12.857) % 28][4],
+        "nakshatra": nakshatras[int(((rad_to_deg(mc_long) - ayanamsa) % 360) / 13.3333) % 27][0],  # Fixed for 27 nakshatras
+        "nakshatra_ruler": nakshatras[int(((rad_to_deg(mc_long) - ayanamsa) % 360) / 13.3333) % 27][2],
+        "nakshatra_quality": nakshatras[int(((rad_to_deg(mc_long) - ayanamsa) % 360) / 13.3333) % 27][3],
+        "nakshatra_attribute": nakshatras[int(((rad_to_deg(mc_long) - ayanamsa) % 360) / 13.3333) % 27][4],
         "chakra": "None",
         "chakra_sanskrit": "None",
         "chakra_energy": "None",
@@ -378,47 +369,40 @@ def calculate_aspects(positions):
                     aspect_table.append((p1, p2, aspect_name, diff, strength))
     return aspect_table
 
-# Build geometric patterns (corrected)
+# Build geometric patterns
 def build_geometric_patterns(positions, aspects):
     patterns = {
         "Dualities": [], "Triads": [], "Squares": [], "Pentagrams": [], "Hexagons": [], "Symmetries": [], "Polarities": []
     }
     opposites = {s[0]: zodiac_signs[(i + 6) % 12][0] for i, s in enumerate(zodiac_signs)}
 
-    # Dualities (Oppositions, 2 planets)
     for a1, a2, aspect, diff, _ in aspects:
         if aspect == "Opposition":
             patterns["Dualities"].append((a1, a2))
 
-    # Triads (Grand Trines, 3 distinct planets)
     for a1, a2, aspect, _, _ in aspects:
         if aspect == "Trine":
             for b1, b2, asp, _, _ in aspects:
                 if asp == "Trine":
-                    # Check for a third trine to form a grand trine
                     common_planet = set([a1, a2]) & set([b1, b2])
                     if common_planet:
                         common = common_planet.pop()
                         other1 = a1 if a1 != common else a2
                         other2 = b1 if b1 != common else b2
-                        # Ensure all planets are distinct
                         if other1 != other2 and other1 != common and other2 != common:
-                            # Check if other1 and other2 form a trine to complete the grand trine
                             for c1, c2, asp2, diff2, _ in aspects:
                                 if asp2 == "Trine" and {c1, c2} == {other1, other2}:
                                     triad = tuple(sorted([common, other1, other2]))
                                     if triad not in patterns["Triads"]:
                                         patterns["Triads"].append(triad)
 
-    # Squares (Grand Squares, 4 distinct planets)
     for a1, a2, aspect, _, _ in aspects:
         if aspect == "Square":
             for b1, b2, asp, _, _ in aspects:
                 if asp == "Square":
                     planets_set = set([a1, a2, b1, b2])
-                    if len(planets_set) == 4:  # Ensure exactly 4 distinct planets
+                    if len(planets_set) == 4:
                         planets = list(planets_set)
-                        # Check if all pairs form a square to confirm a grand square
                         square_pairs = 0
                         for i in range(len(planets)):
                             for j in range(i + 1, len(planets)):
@@ -427,23 +411,17 @@ def build_geometric_patterns(positions, aspects):
                                     if asp2 == "Square" and {c1, c2} == {p1, p2}:
                                         square_pairs += 1
                                         break
-                        # A grand square requires 4 square aspects (each planet squares two others)
-                        if square_pairs >= 4:  # We need at least 4 square aspects to form a grand square
+                        if square_pairs >= 4:
                             square = tuple(sorted(planets))
                             if square not in patterns["Squares"]:
                                 patterns["Squares"].append(square)
 
-    # Pentagrams (Quintiles, 2 planets)
     for a1, a2, aspect, diff, _ in aspects:
         if aspect == "Quintile":
             patterns["Pentagrams"].append((a1, a2))
-
-    # Hexagons (Sextiles, 2 planets)
-    for a1, a2, aspect, diff, _ in aspects:
         if aspect == "Sextile":
             patterns["Hexagons"].append((a1, a2))
 
-    # Symmetries (Near oppositions, 2 planets)
     for name1, data1 in positions.items():
         for name2, data2 in positions.items():
             if name1 >= name2:
@@ -452,12 +430,6 @@ def build_geometric_patterns(positions, aspects):
                        (data2["sidereal_long"] - data1["sidereal_long"]) % 360)
             if 175 <= diff <= 185:
                 patterns["Symmetries"].append((name1, name2))
-
-    # Polarities (Opposite signs, 2 planets)
-    for name1, data1 in positions.items():
-        for name2, data2 in positions.items():
-            if name1 >= name2:
-                continue
             if opposites[data1["sign"]] == data2["sign"]:
                 patterns["Polarities"].append((name1, name2))
 
@@ -493,12 +465,11 @@ def calculate_planetary_cycles(observer, planets, positions, local_time, timezon
         curr_long = positions[planet]["tropical_long"]
         prev_long = prev_positions[planet]
         delta_long = (curr_long - prev_long + 180) % 360 - 180
-        velocity = delta_long  # Degrees per day
+        velocity = delta_long
         cycle_length = 360 / abs(velocity) if abs(velocity) > 0.0001 else float('inf')
         
-        # Calculate cycle start and end
         curr_sidereal = positions[planet]["sidereal_long"]
-        cycle_progress = (curr_sidereal % 360) / 360  # Fraction of cycle completed
+        cycle_progress = (curr_sidereal % 360) / 360
         days_since_start = cycle_progress * cycle_length if velocity > 0 else (1 - cycle_progress) * cycle_length
         days_to_end = (1 - cycle_progress) * cycle_length if velocity > 0 else cycle_progress * cycle_length
         
@@ -510,10 +481,9 @@ def calculate_planetary_cycles(observer, planets, positions, local_time, timezon
         end_local = timezone.fromutc(datetime.datetime(*end_tuple)).strftime('%Y-%m-%d %H:%M:%S %Z')
         
         start_long = (curr_sidereal - (days_since_start * velocity)) % 360
-        max_long = (start_long + 180) % 360  # Peak at halfway point
+        max_long = (start_long + 180) % 360
         end_long = (start_long + 360) % 360
         
-        # Symmetrical distance percentages (sum to 100%)
         dist_to_start = cycle_progress * 100 if velocity > 0 else (1 - cycle_progress) * 100
         dist_to_max = 100.0 - dist_to_start
         
@@ -553,10 +523,9 @@ def calculate_harmonic_resonance(cycles, positions):
             long2 = positions[p2]["sidereal_long"]
             diff = min((long1 - long2) % 360, (long2 - long1) % 360)
             
-            # Resonance strength based on frequency ratio and angular proximity
             freq_ratio = min(freq1 / freq2, freq2 / freq1) if freq2 != 0 else 1
-            resonance = (1 - (diff / 180)) * freq_ratio  # Stronger resonance when closer and frequencies align
-            if resonance > 0.5:  # Threshold for significant resonance
+            resonance = (1 - (diff / 180)) * freq_ratio
+            if resonance > 0.5:
                 resonance_pairs.append((p1, p2, resonance))
     
     return sorted(resonance_pairs, key=lambda x: x[2], reverse=True)
@@ -629,15 +598,14 @@ def calculate_planet_fear_greed_index(planet_name, positions, cycles, aspects):
     mean_velocity = 0.111404 if planet_name == "Black Moon Lilith" else 1.0
     velocity_factor = (velocity - mean_velocity) / mean_velocity * 0.3
     
-    # Enhanced retrograde effect
     retrograde_factor = -0.2 if velocity < 0 else 0.0
-    if velocity < 0:  # Retrograde
-        retrograde_impact = -0.1 * (abs(velocity) / mean_velocity)  # Stronger retrograde = more fear
+    if velocity < 0:
+        retrograde_impact = -0.1 * (abs(velocity) / mean_velocity)
         retrograde_factor += retrograde_impact
         if sign in dignities.get(planet_name, {}).get("debilitated", []):
-            retrograde_factor -= 0.1  # Additional fear in debilitated sign
+            retrograde_factor -= 0.1
         elif sign in dignities.get(planet_name, {}).get("exalted", []):
-            retrograde_factor += 0.05  # Mitigate fear in exalted sign
+            retrograde_factor += 0.05
     
     degree_score = math.sin(math.radians(long)) * 0.2
 
@@ -647,6 +615,65 @@ def calculate_planet_fear_greed_index(planet_name, positions, cycles, aspects):
     description, range_desc = next((desc, r_desc) for min_v, max_v, desc, r_desc in ranges if min_v <= fear_greed_index <= max_v)
 
     return fear_greed_index, description, planet_aspects
+
+# Simplified hourly Fear and Greed Index
+def calculate_hourly_fear_greed_index(positions, cycles, aspects):
+    hourly_fgi = {}
+    for planet in positions:
+        if planet not in ["Ascendant", "Midheaven"]:
+            index, desc, _ = calculate_planet_fear_greed_index(planet, positions, cycles, aspects)
+            hourly_fgi[planet] = (float(index), str(desc))
+    return hourly_fgi
+
+# Extended forecast calculation for multiple time frames
+def calculate_time_frame_forecasts(hourly_fgi, observer, planets, local_time, timezone):
+    forecasts = {'hourly': hourly_fgi, 'daily': 0.0, 'weekly': 0.0, 'monthly': 0.0, 'yearly': 0.0}
+    
+    daily_indices = []
+    for hour in range(24):
+        future_time = local_time + datetime.timedelta(hours=hour)
+        observer.date = future_time.astimezone(pytz.UTC)
+        positions, _ = get_planetary_positions(observer)
+        cycles = calculate_planetary_cycles(observer, planets, positions, future_time, timezone)
+        aspects = calculate_aspects(positions)
+        fgi = calculate_hourly_fear_greed_index(positions, cycles, aspects)
+        daily_indices.extend([idx for idx, _ in fgi.values()])
+    forecasts['daily'] = np.mean(daily_indices) if daily_indices else 0.0
+    
+    weekly_indices = []
+    for day in range(7):
+        future_time = local_time + datetime.timedelta(days=day)
+        observer.date = future_time.astimezone(pytz.UTC)
+        positions, _ = get_planetary_positions(observer)
+        cycles = calculate_planetary_cycles(observer, planets, positions, future_time, timezone)
+        aspects = calculate_aspects(positions)
+        fgi = calculate_hourly_fear_greed_index(positions, cycles, aspects)
+        weekly_indices.extend([idx for idx, _ in fgi.values()])
+    forecasts['weekly'] = np.mean(weekly_indices) if weekly_indices else 0.0
+    
+    monthly_indices = []
+    for day in range(30):
+        future_time = local_time + datetime.timedelta(days=day)
+        observer.date = future_time.astimezone(pytz.UTC)
+        positions, _ = get_planetary_positions(observer)
+        cycles = calculate_planetary_cycles(observer, planets, positions, future_time, timezone)
+        aspects = calculate_aspects(positions)
+        fgi = calculate_hourly_fear_greed_index(positions, cycles, aspects)
+        monthly_indices.extend([idx for idx, _ in fgi.values()])
+    forecasts['monthly'] = np.mean(monthly_indices) if monthly_indices else 0.0
+    
+    yearly_indices = []
+    for day in range(0, 365, 10):
+        future_time = local_time + datetime.timedelta(days=day)
+        observer.date = future_time.astimezone(pytz.UTC)
+        positions, _ = get_planetary_positions(observer)
+        cycles = calculate_planetary_cycles(observer, planets, positions, future_time, timezone)
+        aspects = calculate_aspects(positions)
+        fgi = calculate_hourly_fear_greed_index(positions, cycles, aspects)
+        yearly_indices.extend([idx for idx, _ in fgi.values()])
+    forecasts['yearly'] = np.mean(yearly_indices) if yearly_indices else 0.0
+    
+    return forecasts
 
 # Enhanced Fear and Greed Index with Quadrants and Quadrature
 def calculate_fear_greed_index(positions, cycles, aspects):
@@ -687,7 +714,6 @@ def calculate_fear_greed_index(positions, cycles, aspects):
     else:
         current_status = f"Stable at {description} (Index: {lilith_fgi:.2f})"
 
-    # Quadrant Mapping with Reversals
     quad_map = {"Upward": ["Q1", "Q2", "Q3", "Q4"], "Downward": ["Q4", "Q3", "Q2", "Q1"]}
     if cycle_direction == "Upward":
         if -1.0 <= lilith_fgi < -0.5:
@@ -696,17 +722,17 @@ def calculate_fear_greed_index(positions, cycles, aspects):
             current_quad = "Q3"
         elif 0.0 <= lilith_fgi < 0.5:
             current_quad = "Q1"
-        else:  # 0.5 <= lilith_fgi <= 1.0
+        else:
             current_quad = "Q2"
         dist_percent = ((lilith_fgi + 1.0) / 2.0) * 100
-    else:  # Downward
+    else:
         if -1.0 <= lilith_fgi < -0.5:
             current_quad = "Q1"
         elif -0.5 <= lilith_fgi < 0.0:
             current_quad = "Q2"
         elif 0.0 <= lilith_fgi < 0.5:
             current_quad = "Q4"
-        else:  # 0.5 <= lilith_fgi <= 1.0
+        else:
             current_quad = "Q3"
         dist_percent = ((1.0 - lilith_fgi) / 2.0) * 100
 
@@ -714,23 +740,23 @@ def calculate_fear_greed_index(positions, cycles, aspects):
     current_idx = quad_order.index(current_quad)
     
     if cycle_direction == "Upward":
-        if current_quad == "Q1":  # Reversal at start
+        if current_quad == "Q1":
             past_quad = "Q2"
             next_quad = "Q2"
-        elif current_quad == "Q4":  # Reversal at top (max greed)
+        elif current_quad == "Q4":
             past_quad = "Q3"
             next_quad = "Q3"
-        else:  # Q2 or Q3
+        else:
             past_quad = quad_order[current_idx - 1]
             next_quad = quad_order[current_idx + 1]
-    else:  # Downward
-        if current_quad == "Q4":  # Reversal at start
+    else:
+        if current_quad == "Q4":
             past_quad = "Q3"
             next_quad = "Q3"
-        elif current_quad == "Q1":  # Reversal at bottom (max fear)
+        elif current_quad == "Q1":
             past_quad = "Q2"
             next_quad = "Q2"
-        else:  # Q3 or Q2
+        else:
             past_quad = quad_order[current_idx - 1]
             next_quad = quad_order[current_idx + 1]
 
@@ -742,13 +768,11 @@ def calculate_fear_greed_index(positions, cycles, aspects):
         "cycle_direction": cycle_direction
     }
 
-    # Quadrature Analysis
     quadrature = {}
     for p1, p2, asp, diff, _ in aspects:
         if asp in ["Square", "Opposition"]:
             quadrature[(p1, p2)] = asp
 
-    # Overall Planetary and Sidereal Fear and Greed Index
     planet_fgis = {p: calculate_planet_fear_greed_index(p, positions, cycles, aspects)[0] 
                    for p in positions if p not in ["Ascendant", "Midheaven"]}
     weights = {"Sun": 2.0, "Moon": 2.0, "Mercury": 1.0, "Venus": 1.0, "Mars": 1.0, "Jupiter": 1.0, "Saturn": 1.0,
@@ -757,7 +781,6 @@ def calculate_fear_greed_index(positions, cycles, aspects):
     overall_fgi = sum(planet_fgis[p] * weights.get(p, 1.0) for p in planet_fgis) / sum(weights.get(p, 1.0) for p in planet_fgis)
     overall_desc = next(desc for min_v, max_v, desc, _ in ranges if min_v <= overall_fgi <= max_v)
 
-    # Sidereal-specific index (based on longitude only)
     sidereal_fgi = sum(math.sin(math.radians(positions[p]["sidereal_long"])) * weights.get(p, 1.0) 
                        for p in positions if p not in ["Ascendant", "Midheaven"]) / sum(weights.get(p, 1.0) for p in planet_fgis)
     sidereal_desc = next(desc for min_v, max_v, desc, _ in ranges if min_v <= sidereal_fgi <= max_v)
@@ -771,7 +794,6 @@ def plot_astrological_wheel(positions, zodiac_signs, local_time, planetary_hours
     ax.set_aspect('equal')
     ax.axis('off')
 
-    # Plot zodiac signs
     for sign, start, element, modality, polarity in zodiac_signs:
         wedge = Wedge((0, 0), 1, start, start + 30, facecolor=element_colors[element], alpha=0.5)
         ax.add_patch(wedge)
@@ -779,20 +801,17 @@ def plot_astrological_wheel(positions, zodiac_signs, local_time, planetary_hours
         ax.text(1.1 * math.cos(angle), 1.1 * math.sin(angle), sign, ha='center', va='center', fontsize=10, rotation=-(start + 15))
         ax.text(0.7 * math.cos(angle), 0.7 * math.sin(angle), f"{element}\n{modality}\n{polarity}", ha='center', va='center', fontsize=8)
 
-    # Plot lunar mansions
     for nak_name, start, ruler, quality, attribute in nakshatras:
         angle = math.radians(360 - start + 90)
         x, y = 1.2 * math.cos(angle), 1.2 * math.sin(angle)
         ax.text(x, y, nak_name, fontsize=6, color='purple', rotation=-(start - 90))
 
-    # Plot planets
     for planet, data in positions.items():
         angle = math.radians(360 - data["sidereal_long"] + 90)
         x, y = 0.9 * math.cos(angle), 0.9 * math.sin(angle)
         ax.plot(x, y, 'o', color=data["color"], label=planet)
         ax.text(x * 1.05, y * 1.05, planet, fontsize=8)
 
-    # Highlight current planetary hour
     if current_planet:
         planet, period, start, end = current_planet
         ax.text(0, -1.3, f"Current Planetary Hour: {planet} ({period}, {start.strftime('%H:%M')} - {end.strftime('%H:%M')})", 
@@ -815,7 +834,6 @@ def plot_planetary_hours(planetary_hours, local_time):
                 f"{planet}\n{start.strftime('%H:%M')} - {end.strftime('%H:%M')}", ha='center', va='center', fontsize=8)
         y_pos += 1
     
-    # Mark current time
     current_hour = (local_time - local_time.replace(hour=0, minute=0, second=0)).total_seconds() / 3600
     ax.axvline(current_hour, color='red', linestyle='--', label='Current Time')
     
@@ -828,7 +846,7 @@ def plot_planetary_hours(planetary_hours, local_time):
 # Generate cosmic reflection
 def generate_cosmic_reflection(local_time, asc_sign, mc_sign, aspects, patterns, positions, cycles, analysis, 
                               fear_greed_index, description, lilith_aspects, sacred_geo, overall_fgi, overall_desc, 
-                              sidereal_fgi, sidereal_desc, current_planet, resonance_pairs):
+                              sidereal_fgi, sidereal_desc, current_planet, resonance_pairs, forecasts):
     asc_element, asc_q1, asc_q2 = zodiac_elements[asc_sign]
     mc_element, mc_q1, mc_q2 = zodiac_elements[mc_sign]
     planet_hour = current_planet[0] if current_planet else "Unknown"
@@ -842,6 +860,7 @@ def generate_cosmic_reflection(local_time, asc_sign, mc_sign, aspects, patterns,
                   f"Sidereal Fear and Greed Index: {sidereal_fgi:.2f} ({sidereal_desc})\n"
                   f"Current Planetary Hour: {planet_hour}\n"
                   f"Harmonic Resonance: {', '.join(f'{p1}-{p2} (Strength: {strength:.2f})' for p1, p2, strength in resonance_pairs[:3])}\n"
+                  f"Forecasts: Daily: {forecasts['daily']:.2f}, Weekly: {forecasts['weekly']:.2f}, Monthly: {forecasts['monthly']:.2f}, Yearly: {forecasts['yearly']:.2f}\n"
                   f"This celestial dance unveils a timeless harmony on this day.")
     return reflection
 
@@ -852,7 +871,6 @@ def calculate_planetary_positions():
         observer = setup_observer(lat, lon, utc_time)
         positions, planets = get_planetary_positions(observer)
 
-        # Calculate planetary hours
         planetary_hours, current_planet = calculate_planetary_hours(local_time, lat, lon)
 
         moon_phase = positions["Moon"]["phase"]
@@ -870,7 +888,6 @@ def calculate_planetary_positions():
         print("\nPlanetary Positions (Vedic Sidereal):")
         print("--------------------------------------------------")
         
-        # Print planetary positions in a simple format (removed PrettyTable dependency)
         for planet, data in positions.items():
             element, q1, q2 = zodiac_elements[data['sign']]
             extras = (f", Phase={data['phase']:.1f}%" if planet == "Moon" else "") + \
@@ -917,7 +934,6 @@ def calculate_planetary_positions():
             print(f"  Distance to Start: {data['dist_to_start']:.2f}%")
             print(f"  Distance to Max: {data['dist_to_max']:.2f}% (Symmetrical Sum: {data['dist_to_start'] + data['dist_to_max']:.2f}%)")
 
-        # Harmonic Resonance Analysis
         resonance_pairs = calculate_harmonic_resonance(cycles, positions)
         print("\nHarmonic Resonance Analysis (Top Pairs):")
         for p1, p2, strength in resonance_pairs[:5]:
@@ -968,10 +984,23 @@ def calculate_planetary_positions():
         print("\nSidereal Fear and Greed Index:")
         print(f"Index: {sidereal_fgi:.2f} ({sidereal_desc})")
 
+        hourly_fgi = calculate_hourly_fear_greed_index(positions, cycles, aspects)
+        print("\nHourly Fear and Greed Index:")
+        for planet, (index, desc) in hourly_fgi.items():
+            print(f"  {planet}: {index:.2f} ({desc})")
+
+        forecasts = calculate_time_frame_forecasts(hourly_fgi, observer, planets, local_time, timezone)
+        print("\nFear and Greed Forecasts:")
+        for timeframe, value in forecasts.items():
+            if timeframe == 'hourly':
+                continue
+            desc = next((d for min_v, max_v, d, _ in ranges if min_v <= value <= max_v), "Neutral")
+            print(f"  {timeframe.capitalize()}: {value:.2f} ({desc})")
+
         reflection = generate_cosmic_reflection(local_time, positions["Ascendant"]["sign"], positions["Midheaven"]["sign"], 
                                                aspects, patterns, positions, cycles, analysis, fear_greed_index, description, 
                                                lilith_aspects, sacred_geo, overall_fgi, overall_desc, sidereal_fgi, sidereal_desc,
-                                               current_planet, resonance_pairs)
+                                               current_planet, resonance_pairs, forecasts)
         print("\nCosmic Reflection:\n-----------------\n" + reflection)
 
         print("\nGenerating Sidereal Astrological Wheel Plot...")
@@ -982,6 +1011,8 @@ def calculate_planetary_positions():
 
     except Exception as e:
         print(f"An error occurred: {e}")
+        import traceback
+        traceback.print_exc()
 
 if __name__ == "__main__":
     calculate_planetary_positions()
