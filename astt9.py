@@ -36,25 +36,25 @@ input_time = datetime.now(local_tz)
 
 # Zodiac signs and attributes
 zodiac_signs = [
-    ("Aries", 0, "Fire", "Cardinal", "+", "hot", "dry"), 
+    ("Aries", 0, "Fire", "Cardinal", "+", "hot", "dry"),
     ("Taurus", 30, "Earth", "Fixed", "-", "cold", "dry"),
-    ("Gemini", 60, "Air", "Mutable", "+", "hot", "wet"), 
+    ("Gemini", 60, "Air", "Mutable", "+", "hot", "wet"),
     ("Cancer", 90, "Water", "Cardinal", "-", "cold", "wet"),
-    ("Leo", 120, "Fire", "Fixed", "+", "hot", "dry"), 
+    ("Leo", 120, "Fire", "Fixed", "+", "hot", "dry"),
     ("Virgo", 150, "Earth", "Mutable", "-", "cold", "dry"),
-    ("Libra", 180, "Air", "Cardinal", "+", "hot", "wet"), 
+    ("Libra", 180, "Air", "Cardinal", "+", "hot", "wet"),
     ("Scorpio", 210, "Water", "Fixed", "-", "cold", "wet"),
-    ("Sagittarius", 240, "Fire", "Mutable", "+", "hot", "dry"), 
+    ("Sagittarius", 240, "Fire", "Mutable", "+", "hot", "dry"),
     ("Capricorn", 270, "Earth", "Cardinal", "-", "cold", "dry"),
-    ("Aquarius", 300, "Air", "Fixed", "+", "hot", "wet"), 
+    ("Aquarius", 300, "Air", "Fixed", "+", "hot", "wet"),
     ("Pisces", 330, "Water", "Mutable", "-", "cold", "wet")
 ]
 
 # Planets
 planets = {
-    "Sun": ephem.Sun(), "Moon": ephem.Moon(), "Mercury": ephem.Mercury(), 
-    "Venus": ephem.Venus(), "Mars": ephem.Mars(), "Jupiter": ephem.Jupiter(), 
-    "Saturn": ephem.Saturn(), "Uranus": ephem.Uranus(), "Neptune": ephem.Neptune(), 
+    "Sun": ephem.Sun(), "Moon": ephem.Moon(), "Mercury": ephem.Mercury(),
+    "Venus": ephem.Venus(), "Mars": ephem.Mars(), "Jupiter": ephem.Jupiter(),
+    "Saturn": ephem.Saturn(), "Uranus": ephem.Uranus(), "Neptune": ephem.Neptune(),
     "Pluto": ephem.Pluto()
 }
 
@@ -62,9 +62,9 @@ planets = {
 element_colors = {"Fire": "orange", "Earth": "green", "Air": "yellow", "Water": "blue"}
 connection_colors = {"Fire": "orange", "Earth": "green", "Air": "purple", "Water": "blue"}
 element_groups = {
-    "Fire": ["Aries", "Leo", "Sagittarius"], 
+    "Fire": ["Aries", "Leo", "Sagittarius"],
     "Earth": ["Taurus", "Virgo", "Capricorn"],
-    "Air": ["Gemini", "Libra", "Aquarius"], 
+    "Air": ["Gemini", "Libra", "Aquarius"],
     "Water": ["Cancer", "Scorpio", "Pisces"]
 }
 
@@ -105,10 +105,10 @@ def get_zodiac_sign(longitude):
 def calculate_aspects(positions):
     aspects = []
     aspect_types = {
-        "Conjunction": (0, 8), 
-        "Sextile": (60, 6), 
-        "Square": (90, 6), 
-        "Trine": (120, 8), 
+        "Conjunction": (0, 8),
+        "Sextile": (60, 6),
+        "Square": (90, 6),
+        "Trine": (120, 8),
         "Opposition": (180, 8)
     }
     planet_names = list(positions.keys())
@@ -155,15 +155,7 @@ def plot_astrological_wheel(positions, moon_phase, local_time_str):
     plt.title(f"Astrological Wheel for {local_time_str}")
     plt.show()
 
-# Arabic Parts (Lots) Calculator
-def calculate_lot(personal_point, significator, trigger, positions, asc_deg):
-    pp = asc_deg if personal_point == "ASC" else positions.get(personal_point, 0)
-    sig = positions.get(significator, 0)
-    trig = positions.get(trigger, 0)
-    lot_deg = (pp + sig - trig) % 360
-    sign, *_ = get_zodiac_sign(math.radians(lot_deg))
-    return lot_deg, sign
-
+# Get Syzygy for the last New or Full Moon
 def get_syzygy(observer, current_date):
     moon = ephem.Moon()
     sun = ephem.Sun()
@@ -174,14 +166,23 @@ def get_syzygy(observer, current_date):
         sun.compute(observer)
         elong = abs((moon.elong * 180 / math.pi) % 360)
         if elong < 5 or abs(elong - 180) < 5:
-            return math.degrees(ephem.Ecliptic(moon).lon) % 360
+            return math.degrees(ephem.Ecliptic(moon).lon) % 360  # Return angle in degrees
         observer.date += 1
     return 0
+
+# Arabic Parts (Lots) Calculator
+def calculate_lot(personal_point, significator, trigger, positions, asc_deg):
+    pp = asc_deg if personal_point == "ASC" else positions.get(personal_point, 0)
+    sig = positions.get(significator, 0)
+    trig = positions.get(trigger, 0)
+    lot_deg = (pp + sig - trig) % 360
+    sign, *_ = get_zodiac_sign(math.radians(lot_deg))
+    return lot_deg, sign
 
 # Main astrological clock function
 def astrological_clock():
     sun = ephem.Sun()
-    sunrise_utc = observer.previous_rising(sun).datetime()
+    sunrise_utc = observer.next_rising(sun).datetime()
     sunset_utc = observer.next_setting(sun).datetime()
     sunrise_local = pytz.utc.localize(sunrise_utc).astimezone(local_tz)
     sunset_local = pytz.utc.localize(sunset_utc).astimezone(local_tz)
@@ -190,59 +191,31 @@ def astrological_clock():
     next_sunrise_local = pytz.utc.localize(next_sunrise_utc).astimezone(local_tz)
     observer.date -= 1
 
-    # Define the stages
-    early_morning_end = sunrise_local + timedelta(hours=1)  # Early Morning: Sunrise to 1 hour later
-    morning_end = sunrise_local + timedelta(hours=3)  # Morning: 1 hour to 3 hours after sunrise
-    noon_start = morning_end
-    noon_end = noon_start + timedelta(hours=2)        # Noon: 3 hours total
-    afternoon_start = noon_end
-    late_afternoon_end = sunset_local - timedelta(hours=1)  # Late Afternoon: Last hour before sunset
-    afternoon_end = late_afternoon_end + timedelta(hours=1) # Afternoon: until sunset
-    
-    # Define nighttime stages
-    night_start = sunset_local
-    early_evening_end = night_start + timedelta(hours=1)  # Early Evening: Sunset to 1 hour later
-    evening_end = early_evening_end + timedelta(hours=2)  # Evening: 1 hour to 2 hours later
-    night_end = next_sunrise_local
-    
+    # Check current time
     now = datetime.now(local_tz)
-    print(f"\nCurrent Local Time: {now.strftime('%H:%M:%S %Z')}")
-    print(f"Sunrise: {sunrise_local.strftime('%H:%M:%S %Z')}")
-    print(f"End of Early Morning: {early_morning_end.strftime('%H:%M:%S %Z')}")
-    print(f"End of Morning: {morning_end.strftime('%H:%M:%S %Z')}")
-    print(f"End of Noon: {noon_end.strftime('%H:%M:%S %Z')}")
-    print(f"End of Afternoon: {afternoon_end.strftime('%H:%M:%S %Z')}")
-    print(f"Late Afternoon: {late_afternoon_end.strftime('%H:%M:%S %Z')}")
-    print(f"Sunset (End of Evening): {sunset_local.strftime('%H:%M:%S %Z')}")
-    print(f"Next Sunrise (End of Night): {next_sunrise_local.strftime('%H:%M:%S %Z')}")
 
-    # Determine current stage and print relevant details
-    stages = [
-        ("Early Morning", sunrise_local, early_morning_end),
-        ("Morning", early_morning_end, morning_end),
-        ("Noon", noon_start, noon_end),
-        ("Afternoon", noon_end, late_afternoon_end),
-        ("Late Afternoon", late_afternoon_end, sunset_local),
-        ("Night", sunset_local, next_sunrise_local),
-        ("Early Evening", night_start, early_evening_end),
-        ("Evening", early_evening_end, evening_end)
-    ]
-    
-    for stage_name, start, end in stages:
-        if start <= now < end:
-            dist_to_min = (now - start).total_seconds() / 60
-            dist_to_max = (end - now).total_seconds() / 60
-            stage_hours = (end - start).total_seconds() / 3600
-            print(f"\nIt's {stage_name}!")
-            print(f"Stage Start: {start.strftime('%H:%M:%S %Z')}")
-            print(f"Stage End: {end.strftime('%H:%M:%S %Z')}")
-            print(f"Duration: {stage_hours:.2f} hours")
-            print(f"Minutes from Start: {dist_to_min:.2f}")
-            print(f"Minutes to End: {dist_to_max:.2f}")
-            break
-    
+    # Determine the current stage
+    if sunrise_local <= now < sunrise_local + timedelta(hours=1):  # Early Morning
+        print("It's Early Morning!")
+    elif sunrise_local + timedelta(hours=1) <= now < sunrise_local + timedelta(hours=3):  # Morning
+        print("It's Morning!")
+    elif sunrise_local + timedelta(hours=3) <= now < sunrise_local + timedelta(hours=5):  # Noon
+        print("It's Noon!")
+    elif sunrise_local + timedelta(hours=5) <= now < sunset_local - timedelta(hours=1):  # Afternoon
+        print("It's Afternoon!")
+    elif sunset_local - timedelta(hours=1) <= now < sunset_local:  # Late Afternoon/Evening
+        print("It's Late Afternoon!")
+    elif sunset_local <= now < next_sunrise_local:  # Nighttime
+        print("It's Nighttime!")
+
+    # Output sunrise and sunset times for reference
+    print(f"Sunrise: {sunrise_local.strftime('%H:%M:%S %Z')}")
+    print(f"Sunset: {sunset_local.strftime('%H:%M:%S %Z')}")
+    print(f"Next Sunrise: {next_sunrise_local.strftime('%H:%M:%S %Z')}")
+
     # Set observer to current UTC time for planetary positions
     observer.date = datetime.utcnow()
+    
     # Planetary positions
     positions = {}
     print("\nPlanetary Positions and Attributes:")
@@ -275,7 +248,7 @@ def astrological_clock():
     # Arabic Parts
     print("\nArabic Parts (Lots):")
     print("-" * 40)
-    syzygy_deg = get_syzygy(observer, observer.date)
+    syzygy_deg = get_syzygy(observer, observer.date)  # Correctly retrieve syzygy degree
     fortune_deg, fortune_sign = calculate_lot("ASC", "Moon", "Sun", positions, asc_deg)
     spirit_deg, spirit_sign = calculate_lot("ASC", "Sun", "Moon", positions, asc_deg)
     eros_deg, eros_sign = calculate_lot("ASC", "Venus", "Mars", positions, asc_deg)
