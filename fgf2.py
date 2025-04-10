@@ -22,15 +22,14 @@ if g.ok:
     latitude, longitude = g.latlng
     print(f"Estimated Location - Latitude: {latitude}, Longitude: {longitude}")
 else:
-    print("Could not determine location. Using default coordinates (New York).")
-    latitude, longitude = 40.7128, -74.0060  # Default: New York City
-    print(f"Estimated Location - Latitude: {latitude}, Longitude: {longitude}")
+    print("Could not determine location. Please provide your coordinates manually.")
+    raise ValueError("Geolocation failed. Cannot proceed without latitude and longitude.")
 
-# Set up observer
+# Set up observer with dynamically retrieved coordinates
 observer = ephem.Observer()
 observer.lat = str(latitude)
 observer.lon = str(longitude)
-observer.elev = 0
+observer.elev = 0  # Assume sea level for simplicity
 observer.date = current_datetime.astimezone(timezone.utc)  # Convert to UTC for ephem
 
 # Local timezone and input time
