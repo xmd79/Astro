@@ -1,5 +1,5 @@
 import ephem
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import pytz
 import geocoder
 import math
@@ -28,7 +28,7 @@ observer = ephem.Observer()
 observer.lat = str(latitude)
 observer.lon = str(longitude)
 observer.elev = 0
-observer.date = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)  # Start of current UTC day
+observer.date = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
 
 # Local timezone
 local_tz = datetime.now().astimezone().tzinfo
@@ -122,7 +122,7 @@ def calculate_aspects(positions):
                     aspects.append((p1, p2, aspect, round(angle, 2)))
     return aspects
 
-# Elemental connections
+# Elemental connections drawing
 def draw_elemental_connections(ax, radius=1.0):
     for element, signs in element_groups.items():
         color = connection_colors[element]
@@ -139,7 +139,7 @@ def plot_astrological_wheel(positions, moon_phase, local_time_str):
     ax.set_aspect('equal')
     ax.axis('off')
     for sign, start, element, modality, polarity, q1, q2 in zodiac_signs:
-        wedge = Wedge((0, 0), 1, start, start + 30, facecolor=element_colors[element], alpha=0.3)
+        wedge = Wedge((0, 0), 1, start, start + 30, facecolor=element_colors[element], alpha=0.3)  # Corrected this line
         ax.add_patch(wedge)
         angle = math.radians(start + 15)
         ax.text(1.1 * math.cos(angle), 1.1 * math.sin(angle), sign, ha='center', va='center', fontsize=10, rotation=-(start + 15))
@@ -166,7 +166,7 @@ def get_syzygy(observer, current_date):
         sun.compute(observer)
         elong = abs((moon.elong * 180 / math.pi) % 360)
         if elong < 5 or abs(elong - 180) < 5:
-            return math.degrees(ephem.Ecliptic(moon).lon) % 360  # Return angle in degrees
+            return math.degrees(ephem.Ecliptic(moon).lon) % 360
         observer.date += 1
     return 0
 
@@ -214,8 +214,8 @@ def astrological_clock():
     print(f"Next Sunrise: {next_sunrise_local.strftime('%H:%M:%S %Z')}")
 
     # Set observer to current UTC time for planetary positions
-    observer.date = datetime.utcnow()
-    
+    observer.date = datetime.now(timezone.utc)
+
     # Planetary positions
     positions = {}
     print("\nPlanetary Positions and Attributes:")
