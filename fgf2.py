@@ -71,28 +71,54 @@ element_groups = {
 
 # Moon phase calculation
 def get_moon_phase(observer):
+    """
+    Calculate the current Moon phase based on the elongation angle between the Moon and Sun.
+    Returns a tuple of (phase_name, elongation_angle_in_degrees).
+    
+    Parameters:
+        observer: ephem.Observer object with date, latitude, longitude set.
+    
+    Phases and elongation ranges:
+        - New Moon: 355°–360° or 0°–5°
+        - Waxing Crescent: 5°–85°
+        - First Quarter: 85°–95°
+        - Waxing Gibbous: 95°–175°
+        - Full Moon: 175°–185°
+        - Waning Gibbous: 185°–265°
+        - Third Quarter: 265°–275°
+        - Waning Crescent: 275°–355°
+    """
     moon = ephem.Moon()
-    moon.compute(observer)
     sun = ephem.Sun()
+    moon.compute(observer)
     sun.compute(observer)
-    phase_angle = (moon.elong * 180 / math.pi) % 360
-    if 0 <= phase_angle < 5 or 355 <= phase_angle < 360:
+    
+    # Calculate elongation (angular distance between Moon and Sun)
+    elongation = float(moon.elong) * 180 / math.pi  # Convert radians to degrees
+    # Normalize to [0°, 360°]
+    elongation = elongation % 360
+    if elongation < 0:
+        elongation += 360
+    
+    # Determine Moon phase based on elongation
+    if 0 <= elongation < 5 or 355 <= elongation < 360:
         phase_name = "New Moon"
-    elif 5 <= phase_angle < 67.5:
+    elif 5 <= elongation < 85:
         phase_name = "Waxing Crescent"
-    elif 67.5 <= phase_angle < 112.5:
+    elif 85 <= elongation < 95:
         phase_name = "First Quarter"
-    elif 112.5 <= phase_angle < 157.5:
+    elif 95 <= elongation < 175:
         phase_name = "Waxing Gibbous"
-    elif 157.5 <= phase_angle < 202.5:
+    elif 175 <= elongation < 185:
         phase_name = "Full Moon"
-    elif 202.5 <= phase_angle < 247.5:
+    elif 185 <= elongation < 265:
         phase_name = "Waning Gibbous"
-    elif 247.5 <= phase_angle < 292.5:
+    elif 265 <= elongation < 275:
         phase_name = "Third Quarter"
-    else:
+    else:  # 275 <= elongation < 355
         phase_name = "Waning Crescent"
-    return phase_name, phase_angle
+    
+    return phase_name, elongation
 
 # Zodiac sign determination
 def get_zodiac_sign(longitude):
